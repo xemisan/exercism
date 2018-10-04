@@ -1,8 +1,7 @@
 ﻿module SumOfMultiples
 
 let keepNumbersWithDivisors (divisors: int list) (number: int): int =
-    let isDivisible = divisors |> List.filter(fun d -> number % d = 0) |> List.tryHead
-    // printfn "%A contains any divisor of %d? %b" divisors number isDivisible.IsSome
+    let isDivisible = divisors |> List.tryFind(fun d -> number % d = 0)
     match isDivisible with
             | Some _ -> number
             | None -> 0
