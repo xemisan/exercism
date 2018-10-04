@@ -2,11 +2,10 @@
 
 let sounds = [(3, "Pling"); (5, "Plang"); (7, "Plong")]
 
-let addDefault number input = if input = System.String.Empty then number.ToString() else input
-
 let convert (number: int): string = 
     sounds
     |> Seq.filter(fun (factor,_) -> number % factor = 0)
     |> Seq.map snd
-    |> System.String.Concat 
-    |> addDefault number
+    |> function
+        | result when Seq.isEmpty result -> number.ToString()
+        | result -> System.String.Concat result
