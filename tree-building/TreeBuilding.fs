@@ -21,76 +21,34 @@ let children t =
     | Branch (_, c) -> c
     | Leaf _ -> []
 
-let createBranch records id = 
-    records
-    |> List.filter (fun x -> x.ParentId = id)
-    |> List.map (fun x -> Leaf x.RecordId)
+let validateContinuousList result = 
+    let ids = result |> List.map (fun x -> x.RecordId)
+    [| for i in 0 .. ids |> List.max -> i |] |> Array.toList |> List.forall (fun x -> ids |> List.contains x)
 
-let rec otraPrueba (records: Record List) (tree: Tree List): Tree List = 
-    printfn ""
-    printfn "-----------------------------------------------------------------------------------"
-    printfn ""
-    printfn "-> Elementos del árbol actual: %d" tree.Length
-    printfn "\t%A" tree
-    printfn "-> Elementos por procesar: %d" records.Length
-    
-    let posiblesPadres = records |> List.map(fun x -> x.ParentId) |> List.distinct
-    printfn "-> Posibles padres: %d" posiblesPadres.Length
-    
-    let futurasHojas = records |> List.filter (fun x -> posiblesPadres |> List.contains x.RecordId |> not )
-    printfn "-> Futuras hojas: %d" futurasHojas.Length
-    
-    let futurasRamas = futurasHojas |> List.map (fun x -> x.ParentId) |> List.distinct
-    printfn "-> Futuras ramas: %d" futurasRamas.Length
-
-    // let helper (hojas: Tree List) =
-    //     hojas |> List.tryFindIndex (fun x -> recordId x = id) tree |> function
-    //     | Some value ->
-    //         printfn "\tSI lo hemos encontrao en el indice %d" value
-    //         let item = tree.[value]
-    //         children item
-    //     | None ->
-    //         printfn "\tNO lo hemos encontrao"
-    //         createBranch futurasHojas id
-
-        // printfn "\tArrebuscando el elemento %d" id
-        // let exists = List.tryFindIndex (fun x -> recordId x = id) tree
-        // match exists with
-        // | Some value ->
-        //     printfn "\tSI lo hemos encontrao en el indice %d" value
-        //     let item = tree.[value]
-        //     children item
-        // | None ->
-        //     printfn "\tNO lo hemos encontrao"
-        //     createBranch futurasHojas id
-        
-
-
-
-
-    
-    let ramas = futurasRamas |> List.map (fun x -> Branch (x, x |> createBranch futurasHojas ))
-    printfn "-> Ramas reales: %d" ramas.Length
-    printfn "\t%A" ramas
-
-    let excluir = futurasHojas |> List.map(fun x -> x.RecordId)
-    printfn "-> Hay que excluir: %d" excluir.Length
-
-    let pendientes = records |> List.filter (fun x -> excluir |> List.contains x.RecordId |> not )
-    printfn "-> Elementos pendientes: %d" pendientes.Length
-
-    match pendientes.Length with
+let rec buildTreeRecursive (records: Record List) (tree: Tree List): Tree List = 
+    let leafs = records |> List.filter (fun x -> records |> List.map(fun x -> x.ParentId) |> List.distinct |> List.contains x.RecordId |> not )
+    let pending = records |> List.filter (fun x -> leafs |> List.map(fun x -> x.RecordId) |> List.contains x.RecordId |> not )
+    let branches = leafs 
+                |> List.map (fun x -> x.ParentId) 
+                |> List.distinct 
+                |> List.map (fun x -> 
+                    Branch (x, leafs 
+                    |> List.filter (fun x1 -> x1.ParentId = x) 
+                    |> List.map (fun x2 -> 
+                        match tree |> List.tryFind (fun y -> x2.RecordId = recordId y) with
+                        | None -> Leaf x2.RecordId
+                        | Some item -> Branch (x2.RecordId, children item))))
+                        
+    match pending.Length with
     | 1 -> 
-        printfn "\t-> Hay un elemento, ¿q tal el puto arbol? %d" tree.Length
         match tree with
         | [] ->
-            match ramas with
-            | [] -> [Leaf pendientes.[0].RecordId]
-            | _ -> ramas
-        | _ -> ramas
-    | _ -> 
-        otraPrueba pendientes ramas
-        
+            match branches with
+            | [] -> [Leaf pending.[0].RecordId]
+            | _ -> branches
+        | _ -> branches
+    | _ -> buildTreeRecursive pending branches
+
 let buildTree records = 
     records
     |> List.sortBy (fun x -> x.RecordId)
@@ -98,6 +56,8 @@ let buildTree records =
         | [] -> failwith "Empty input"
         | result when result.[0].ParentId = 0 |> not -> failwith "Root node is invalid"
         | result when result.[0].RecordId = 0 |> not -> failwith "Root node is invalid"
+        | result when result |> List.exists (fun r -> r.RecordId <> 0 && (r.ParentId > r.RecordId || r.ParentId = r.RecordId)) -> failwith "Nodes with invalid parents"
+        | result when validateContinuousList result |> not -> failwith "Non-continuous list"
         | result ->
-            let arbolito = otraPrueba result []
-            arbolito.[0]
+            let tree = buildTreeRecursive result []
+            tree.[0]
