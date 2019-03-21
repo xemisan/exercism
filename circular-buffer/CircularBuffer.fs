@@ -2,7 +2,7 @@
 
 type Buffer = {size: int; elements: int list}
 
-let mkCircularBuffer x = { size = x; elements = []}
+let mkCircularBuffer size = { size = size; elements = []}
 
 let clear buffer = { buffer with elements = [] }
 
