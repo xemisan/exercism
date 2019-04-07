@@ -4,7 +4,7 @@ type Account = { mutable Balance: decimal option }
 
 let mkBankAccount() = { Balance = None }
 
-let openAccount _ = { Balance = Some 0.0m }
+let openAccount account = { account with  Balance = Some 0.0m }
 
 let closeAccount account = { account with Balance = None }
 
