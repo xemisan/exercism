@@ -1,22 +1,19 @@
 ﻿module BankAccount
 
-type Account = {IsOpen: bool; mutable Balance: decimal}
+type Account = { mutable Balance: decimal option }
 
-let mkBankAccount() = {IsOpen = true; Balance = 0.0m}
+let mkBankAccount() = { Balance = Some 0.0m }
 
-let openAccount account = {account with IsOpen = true}
+let openAccount _ = { Balance = Some 0.0m }
 
-let closeAccount account = {account with IsOpen = false}
+let closeAccount account = { account with Balance = None }
 
-let getBalance account =
-    if account.IsOpen then
-        Some account.Balance
-    else
-        None
+let getBalance account = account.Balance
 
 let updateBalance change account =
-    if account.IsOpen then
-        lock account (fun () -> account.Balance <- account.Balance + change)
+    match account.Balance with
+    | Some _ ->
+        lock account (fun () -> account.Balance <- Some (account.Balance.Value + change))
         account
-    else
+    | None ->
         account
